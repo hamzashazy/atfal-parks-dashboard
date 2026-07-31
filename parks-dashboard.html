@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atfal Parks Report — Live Dashboard</title>
+<style>
+  :root {
+    color-scheme: light;
+    --ground: #f6f7f9;
+    --panel: #ffffff;
+    --ink: #16233a;
+    --ink-2: #5b6474;
+    --ink-3: #8b93a3;
+    --line: #e3e6ec;
+    --head: #1f2b45;
+    --head-ink: #f2f5fa;
+    --zebra: #f3f5f8;
+    --accent: #2a78d6;
+    --accent-soft: #e4eefb;
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --good: #1a7f4e;
+    --bad: #c23b3b;
+    --shadow: 0 1px 2px rgba(22,35,58,.06), 0 4px 16px rgba(22,35,58,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground: #12151c;
+      --panel: #1a1f29;
+      --ink: #edf0f5;
+      --ink-2: #a7aebc;
+      --ink-3: #78808f;
+      --line: #2a3140;
+      --head: #232f4b;
+      --head-ink: #eef2f9;
+      --zebra: #1f2531;
+      --accent: #3987e5;
+      --accent-soft: #22314a;
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --good: #3dbf7f;
+      --bad: #e66767;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #12151c;
+    --panel: #1a1f29;
+    --ink: #edf0f5;
+    --ink-2: #a7aebc;
+    --ink-3: #78808f;
+    --line: #2a3140;
+    --head: #232f4b;
+    --head-ink: #eef2f9;
+    --zebra: #1f2531;
+    --accent: #3987e5;
+    --accent-soft: #22314a;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --good: #3dbf7f;
+    --bad: #e66767;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --ground: #f6f7f9;
+    --panel: #ffffff;
+    --ink: #16233a;
+    --ink-2: #5b6474;
+    --ink-3: #8b93a3;
+    --line: #e3e6ec;
+    --head: #1f2b45;
+    --head-ink: #f2f5fa;
+    --zebra: #f3f5f8;
+    --accent: #2a78d6;
+    --accent-soft: #e4eefb;
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --good: #1a7f4e;
+    --bad: #c23b3b;
+    --shadow: 0 1px 2px rgba(22,35,58,.06), 0 4px 16px rgba(22,35,58,.05);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { transition: none !important; animation: none !important; }
+  }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--ground);
+    color: var(--ink);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 20px 64px; }
+
+  /* ---------- header ---------- */
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-bottom: 22px; }
+  .h-title h1 { font-size: 1.45rem; font-weight: 700; letter-spacing: -.01em; text-wrap: balance; }
+  .h-title p { font-size: .82rem; color: var(--ink-2); }
+  .h-spacer { flex: 1; }
+  .live-pill {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: .74rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+    padding: 6px 12px; color: var(--ink-2); box-shadow: var(--shadow);
+  }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); }
+  .live-dot.err { background: var(--bad); }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+  .live-dot.ok { animation: pulse 2s ease-in-out infinite; }
+  .btn {
+    font: inherit; font-size: .8rem; font-weight: 600; color: var(--ink);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 13px; cursor: pointer; box-shadow: var(--shadow);
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .stamp { font-size: .74rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .banner {
+    display: none; margin-bottom: 16px; padding: 10px 14px; border-radius: 8px;
+    background: color-mix(in srgb, var(--bad) 10%, var(--panel));
+    border: 1px solid color-mix(in srgb, var(--bad) 35%, var(--line));
+    color: var(--ink); font-size: .84rem;
+  }
+  .banner.show { display: block; }
+
+  /* ---------- KPI tiles ---------- */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 22px; }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); }
+  .kpi .k-label { font-size: .68rem; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); }
+  .kpi .k-value { font-size: 1.7rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; margin-top: 2px; }
+  .kpi .k-sub { font-size: .72rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+  /* ---------- panels ---------- */
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 20px 20px 18px; margin-bottom: 22px; }
+  .panel-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin-bottom: 14px; }
+  .panel-head h2 { font-size: 1.05rem; font-weight: 700; letter-spacing: -.01em; }
+  .panel-head .sub { font-size: .78rem; color: var(--ink-2); }
+  .panel-head .spacer { flex: 1; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button {
+    font: inherit; font-size: .76rem; font-weight: 600; padding: 6px 12px; cursor: pointer;
+    background: transparent; border: none; color: var(--ink-2);
+  }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--head); color: var(--head-ink); }
+  .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+  /* ---------- matrix table (styled after the reference image) ---------- */
+  .tbl-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: .84rem; }
+  thead th {
+    background: var(--head); color: var(--head-ink); font-weight: 600;
+    padding: 10px 12px; text-align: right; white-space: nowrap;
+  }
+  thead th:first-child { text-align: left; border-radius: 6px 0 0 0; }
+  thead th:last-child { border-radius: 0 6px 0 0; }
+  tbody td, tfoot td { padding: 9px 12px; text-align: right; font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--line); }
+  tbody td:first-child, tfoot td:first-child { text-align: left; }
+  tbody tr.city-row { cursor: pointer; }
+  tbody tr.city-row:hover td { background: var(--accent-soft); }
+  tbody tr:nth-child(even of .city-row) td { background: var(--zebra); }
+  tbody tr:nth-child(even of .city-row):hover td { background: var(--accent-soft); }
+  tbody tr.park-row td { background: color-mix(in srgb, var(--accent-soft) 45%, var(--panel)); color: var(--ink-2); font-size: .8rem; border-bottom: 1px dashed var(--line); }
+  tbody tr.park-row td:first-child { padding-left: 30px; }
+  .caret { display: inline-block; width: 14px; color: var(--ink-3); transition: transform .15s; }
+  tr.open .caret { transform: rotate(90deg); }
+  tfoot td { font-weight: 700; border-top: 2px solid var(--head); border-bottom: none; }
+  .dim { color: var(--ink-3); }
+
+  /* ---------- charts ---------- */
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 760px) { .chart-grid { grid-template-columns: 1fr; } }
+  .chart-box h3 { font-size: .86rem; font-weight: 600; margin-bottom: 4px; }
+  .chart-box .c-sub { font-size: .72rem; color: var(--ink-3); margin-bottom: 6px; }
+  .chart-wrap { position: relative; }
+  .chart-wrap svg { width: 100%; height: auto; display: block; }
+  .tip {
+    position: absolute; pointer-events: none; z-index: 5; display: none;
+    background: var(--head); color: var(--head-ink); font-size: .74rem;
+    padding: 6px 10px; border-radius: 7px; white-space: nowrap; box-shadow: var(--shadow);
+    font-variant-numeric: tabular-nums; transform: translate(-50%, calc(-100% - 10px));
+  }
+  .tip b { font-weight: 700; }
+  .grid-line { stroke: var(--line); stroke-width: 1; }
+  .axis-txt { fill: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; display: none; }
+
+  /* ---------- feed ---------- */
+  .feed { display: grid; gap: 10px; }
+  .feed-item { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 14px; padding: 11px 14px; border: 1px solid var(--line); border-radius: 10px; align-items: baseline; }
+  .feed-item .f-city { font-weight: 700; font-size: .86rem; }
+  .feed-item .f-park { font-size: .78rem; color: var(--ink-2); grid-column: 2; }
+  .feed-item .f-week {
+    font-size: .68rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+    background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 9px; justify-self: start;
+  }
+  .feed-item .f-nums { font-size: .8rem; font-variant-numeric: tabular-nums; color: var(--ink-2); grid-column: 3; grid-row: 1 / 3; text-align: right; }
+  .feed-item .f-nums b { color: var(--ink); font-size: .95rem; }
+  .feed-item .f-note { grid-column: 1 / -1; font-size: .78rem; color: var(--ink-2); border-top: 1px dashed var(--line); padding-top: 6px; margin-top: 3px; }
+  footer { text-align: center; font-size: .74rem; color: var(--ink-3); margin-top: 8px; }
+  footer a { color: var(--accent); }
+  .skel { color: var(--ink-3); font-size: .85rem; padding: 30px 0; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="h-title">
+      <h1>Atfal Parks Report</h1>
+      <p>Sunday classes across Pakistan — live from Google Sheets</p>
+    </div>
+    <div class="h-spacer"></div>
+    <span class="live-pill"><span class="live-dot ok" id="liveDot"></span><span id="liveTxt">Live</span></span>
+    <span class="stamp" id="stamp">loading…</span>
+    <button class="btn" id="refreshBtn" type="button">Refresh now</button>
+    <button class="btn" id="themeBtn" type="button" aria-label="Toggle theme">◐ Theme</button>
+  </header>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2 id="matrixTitle">Parks Report — Teams (Week Wise)</h2>
+      <span class="sub">click a city to see its parks</span>
+      <span class="spacer"></span>
+      <div class="seg" role="group" aria-label="Metric">
+        <button type="button" data-metric="team" aria-pressed="true">Teams</button>
+        <button type="button" data-metric="kids" aria-pressed="false">Kids</button>
+        <button type="button" data-metric="reports" aria-pressed="false">Reports</button>
+      </div>
+    </div>
+    <div class="tbl-scroll">
+      <table id="matrix" aria-describedby="matrixTitle">
+        <thead></thead><tbody><tr><td class="skel" colspan="9">Loading live data…</td></tr></tbody><tfoot></tfoot>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Weekly Trend</h2>
+      <span class="sub">totals per week, all cities</span>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-box">
+        <h3>Kids Present</h3>
+        <div class="c-sub">sum of Sunday-class attendance</div>
+        <div class="chart-wrap" id="chartKids"><div class="tip"></div></div>
+      </div>
+      <div class="chart-box">
+        <h3>Team Members Present</h3>
+        <div class="c-sub">murabbi, admin &amp; khidmat combined</div>
+        <div class="chart-wrap" id="chartTeam"><div class="tip"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Cities by Attendance</h2>
+      <span class="sub">total kids across all weeks</span>
+    </div>
+    <div class="chart-wrap" id="chartCities"><div class="tip"></div></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Latest Reports</h2>
+      <span class="sub">most recent form submissions</span>
+    </div>
+    <div class="feed" id="feed"><div class="skel">Loading live data…</div></div>
+  </section>
+
+  <footer>
+    Auto-refreshes every 60 s ·
+    <a href="https://docs.google.com/spreadsheets/d/1OQyS5r3FKZaWr4ZQFhnGaKPiN8DnvVKsWcimPQCZfXQ/edit" target="_blank" rel="noopener">open source sheet</a>
+  </footer>
+</div>
+
+<script>
+"use strict";
+const SHEET_ID = "1OQyS5r3FKZaWr4ZQFhnGaKPiN8DnvVKsWcimPQCZfXQ";
+const GID = "1392552534";
+const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
+const REFRESH_MS = 60000;
+const WEEK1_START = new Date(2026, 5, 14); // first Sunday of classes
+let WEEKS = [], TREND_WEEKS = [];
+
+let state = { rows: [], metric: "team", openCities: new Set() };
+
+/* ---------- CSV parsing (quotes + embedded newlines) ---------- */
+function parseCSV(text) {
+  const rows = []; let row = [], field = "", inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') { if (text[i+1] === '"') { field += '"'; i++; } else inQ = false; }
+      else field += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ",") { row.push(field); field = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i+1] === "\n") i++;
+      row.push(field); field = "";
+      if (row.some(f => f !== "")) rows.push(row);
+      row = [];
+    } else field += c;
+  }
+  row.push(field);
+  if (row.some(f => f !== "")) rows.push(row);
+  return rows;
+}
+
+/* ---------- normalisation ---------- */
+// same park written in different scripts/spellings — clustering can't bridge
+// Urdu↔English, so map known variants explicitly (keys lowercase; extend freely)
+const PARK_ALIASES = {
+  "گلشن اقبال پارک": "Gulshan-e-Iqbal Park",
+  "ویلنشیا nfc پارک": "NFC Central Park (Valencia)",
+  "nfc (valancia)": "NFC Central Park (Valencia)",
+  "عبدل خیل": "Abdul khel",
+  "(عبدالخیل) ڈیرہ اسماعیل خان": "Abdul khel",
+  "(abdulkheil) dara ismail khan": "Abdul khel",
+  "انصاف پارک، ٹاؤن ہال پارک": "Insaf Park, Town hall Park",
+  "towon hall park, insaf park": "Insaf Park, Town hall Park",
+  "town hall and insaaf park (dera ismail khan)": "Insaf Park, Town hall Park",
+  "مالی باغ کوئٹہ": "Mali bagh",
+  "گلزار فاطمہ": "Gulzar e Fatima",
+  "/(فاطمہ جناح پارک)": "Fatima Jinnah Park",
+  "fatima janah park": "Fatima Jinnah Park",
+  "ہاتھی پارک": "Hathi park/officers colony wah cantt",
+  "ladies parl kts": "Ladies Park KTS",
+  "ghulshan usman": "Gulshan Usman",
+  "ghulshan iqbal": "Gulshan Iqbal",
+  "عبد ل خیل": "Abdul khel",
+  "عبدل خیل ڈیرہ اسماعیل خان": "Abdul khel",
+  "عبدل خیل پارک ڈیرہ اسماعیل خان": "Abdul khel",
+  "گلزار فاطمہ پارک": "Gulzar e Fatima",
+  "i park": "Sector I Park",
+  "i sector park": "Sector I Park",
+  "sector i park": "Sector I Park",
+  "i park sheikh maltoon town": "Sector I Park"
+};
+// "35 - 40" → average; "Murbaeen 4, admin 1, khidmat 2" → sum; "50+" / "48" → 50 / 48
+function parseNum(s) {
+  s = String(s ?? "").trim();
+  const range = s.match(/^(\d+)\s*[-–—]\s*(\d+)\s*\+?$/);
+  if (range) return Math.round((+range[1] + +range[2]) / 2);
+  const nums = s.match(/\d+/g);
+  return nums ? nums.reduce((a, n) => a + parseInt(n, 10), 0) : 0;
+}
+function normWeek(s) {
+  s = String(s ?? "").trim();
+  if (/orient/i.test(s)) return "Orientation";
+  const m = s.match(/(\d+)/);
+  return m ? `Week ${m[1]}` : "";
+}
+// columns are actual Sundays, not "Week N" — cities started on different weeks,
+// so each report snaps to the Sunday of its class-date week
+function sundayOf(s) {
+  const m = String(s ?? "").match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (!m) return 0;
+  const d = new Date(+m[3], +m[2]-1, +m[1]);
+  d.setDate(d.getDate() - d.getDay());
+  const t = d.getTime(), lo = WEEK1_START.getTime() - 14 * 86400000, hi = WEEK1_START.getTime() + 420 * 86400000;
+  return t >= lo && t <= hi ? t : 0;      // reject typo dates far outside the program
+}
+// fallback when a row has no readable class date: "Week N" label → Nth Sunday
+function labelToSunday(label) {
+  const n = parseInt(String(label).replace(/\D+/g, ""), 10);
+  if (!n) return 0;
+  const d = new Date(WEEK1_START);
+  d.setDate(d.getDate() + (n - 1) * 7);
+  return d.getTime();
+}
+const MONTH_S = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const fmtWeek = w => w === "Orientation" ? "Orientation"
+  : (d => `${d.getDate()} ${MONTH_S[d.getMonth()]}`)(new Date(+w));
+function parseTS(s) {
+  const m = String(s ?? "").match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})/);
+  if (!m) return 0;
+  return new Date(+m[3], +m[2]-1, +m[1], +m[4], +m[5], +m[6]).getTime();
+}
+function toRecords(csvRows) {
+  const recs = [];
+  for (const r of csvRows) {
+    if (r.length < 7) continue;
+    if (!/\d{1,2}\/\d{1,2}\/\d{4}/.test(r[0])) continue;         // skips the header row
+    const label = normWeek(r[3]);
+    const week = label === "Orientation" ? "Orientation" : (sundayOf(r[4]) || labelToSunday(label));
+    if (!week) continue;
+    const rawPark = (r[2] || "").trim().replace(/https?:\/\/\S+/g, "").trim() || "(unnamed park)";
+    recs.push({
+      ts: parseTS(r[0]),
+      city: (r[1] || "Unknown").trim(),
+      park: PARK_ALIASES[rawPark.toLowerCase().replace(/\s+/g, " ")] || rawPark,
+      week,
+      kids: parseNum(r[5]),
+      team: parseNum(r[6]),
+      note: (r[7] || "").trim()
+    });
+  }
+  unifyParks(recs);
+  return dedupe(recs);
+}
+
+// park names are typed differently each fill ("UPS" / "UPS, Peshawar" /
+// "UPS, University Road") — cluster variants within a city so duplicate
+// form fills collapse and a park's weeks line up on one row
+function unifyParks(recs) {
+  const norm = r => r.park.toLowerCase().split(r.city.toLowerCase()).join(" ")
+    .replace(/\b(park|parks|ground|national)\b/g, " ")   // generic words carry no identity
+    .replace(/پارک/g, " ")
+    .replace(/[^a-z؀-ۿ0-9]+/g, "")
+    .replace(/(.)\1+/g, "$1");                            // Ayyub/Ayub, Insaaf/Insaf
+  const byCity = new Map();
+  for (const r of recs) {
+    const c = r.city.toLowerCase();
+    if (!byCity.has(c)) byCity.set(c, []);
+    byCity.get(c).push(r);
+  }
+  for (const list of byCity.values()) {
+    const clusters = [];
+    for (const r of list) {
+      const k = norm(r);
+      if (!k) continue;
+      let cl = clusters.find(c => k === c.key || (k.length >= 3 && c.key.includes(k)) || (c.key.length >= 3 && k.includes(c.key)));
+      if (!cl) clusters.push(cl = { key: k, names: new Map(), recs: [] });
+      if (k.length < cl.key.length) cl.key = k;
+      cl.recs.push(r);
+      cl.names.set(r.park, (cl.names.get(r.park) || 0) + 1);
+    }
+    for (const cl of clusters) {
+      const best = [...cl.names.entries()].sort((a, b) => b[1] - a[1] || a[0].length - b[0].length)[0][0];
+      for (const r of cl.recs) r.park = best;
+    }
+  }
+}
+
+// re-submissions correct earlier mistakes — keep only the latest per city+park+week
+function dedupe(recs) {
+  const byKey = new Map();
+  for (const r of recs) {
+    const key = `${r.city.toLowerCase()}|${r.park.toLowerCase()}|${r.week}`;
+    const prev = byKey.get(key);
+    if (!prev || r.ts > prev.ts) byKey.set(key, r);
+  }
+  return [...byKey.values()];
+}
+
+function weekList(recs) {
+  const sundays = recs.map(r => r.week).filter(w => w !== "Orientation");
+  const weeks = recs.length > sundays.length ? ["Orientation"] : [];
+  if (sundays.length) {
+    const max = Math.max(...sundays);
+    for (const d = new Date(Math.min(...sundays)); d.getTime() <= max; d.setDate(d.getDate() + 7))
+      weeks.push(d.getTime());
+  }
+  return weeks;
+}
+
+/* ---------- aggregation ---------- */
+function aggregate(recs) {
+  const cities = new Map();
+  for (const rc of recs) {
+    if (!cities.has(rc.city)) cities.set(rc.city, { weeks: {}, parks: new Map(), kids: 0, team: 0, reports: 0 });
+    const c = cities.get(rc.city);
+    const w = c.weeks[rc.week] ??= { kids: 0, team: 0, reports: 0 };
+    w.kids += rc.kids; w.team += rc.team; w.reports++;
+    c.kids += rc.kids; c.team += rc.team; c.reports++;
+    const pKey = rc.park.toLowerCase();
+    if (!c.parks.has(pKey)) c.parks.set(pKey, { name: rc.park, weeks: {} });
+    const pw = c.parks.get(pKey).weeks[rc.week] ??= { kids: 0, team: 0, reports: 0 };
+    pw.kids += rc.kids; pw.team += rc.team; pw.reports++;
+  }
+  return cities;
+}
+
+/* ---------- KPI tiles ---------- */
+const fmt = n => n.toLocaleString("en-US");
+function renderKPIs(recs, cities) {
+  const totKids = recs.reduce((a, r) => a + r.kids, 0);
+  const totTeam = recs.reduce((a, r) => a + r.team, 0);
+  let latest = "", lkKids = 0;
+  for (const w of TREND_WEEKS) {
+    const k = recs.filter(r => r.week === w).reduce((a, r) => a + r.kids, 0);
+    if (k > 0) { latest = w; lkKids = k; }
+  }
+  const ratio = totTeam ? (totKids / totTeam).toFixed(1) : "—";
+  document.getElementById("kpis").innerHTML = [
+    ["Total Kids", fmt(totKids), "all sessions"],
+    ["Team Members", fmt(totTeam), "murabbi · admin · khidmat"],
+    ["Reports Filed", fmt(recs.length), `${cities.size} cities`],
+    ["Kids per Team Member", ratio, "program-wide average"],
+    [`${latest ? fmtWeek(latest) : "Latest Sunday"} Kids`, fmt(lkKids), "most recent Sunday with data"]
+  ].map(([l, v, s]) =>
+    `<div class="kpi"><div class="k-label">${l}</div><div class="k-value">${v}</div><div class="k-sub">${s}</div></div>`
+  ).join("");
+}
+
+/* ---------- matrix table ---------- */
+const METRIC_LABEL = { team: "Teams", kids: "Kids", reports: "Reports" };
+function renderMatrix(cities) {
+  const m = state.metric;
+  document.getElementById("matrixTitle").textContent = `Parks Report — ${METRIC_LABEL[m]} (By Sunday)`;
+  const tbl = document.getElementById("matrix");
+  tbl.querySelector("thead").innerHTML =
+    `<tr><th>City</th>${WEEKS.map(w => `<th>${w === "Orientation" ? "Orient." : fmtWeek(w)}</th>`).join("")}<th>Total</th></tr>`;
+
+  const sorted = [...cities.entries()].sort((a, b) => b[1][m] - a[1][m]);
+  let body = "";
+  for (const [name, c] of sorted) {
+    const isOpen = state.openCities.has(name);
+    const cells = WEEKS.map(w => {
+      const v = c.weeks[w]?.[m] ?? 0;
+      return `<td>${v ? fmt(v) : '<span class="dim">–</span>'}</td>`;
+    }).join("");
+    body += `<tr class="city-row${isOpen ? " open" : ""}" data-city="${encodeURIComponent(name)}" tabindex="0" role="button" aria-expanded="${isOpen}">` +
+            `<td><span class="caret">▸</span>${name}</td>${cells}<td><b>${fmt(c[m])}</b></td></tr>`;
+    if (isOpen) {
+      const parks = [...c.parks.values()].sort((a, b) => {
+        const t = p => Object.values(p.weeks).reduce((x, w) => x + w[m], 0);
+        return t(b) - t(a);
+      });
+      for (const p of parks) {
+        const pt = Object.values(p.weeks).reduce((x, w) => x + w[m], 0);
+        const pc = WEEKS.map(w => {
+          const v = p.weeks[w]?.[m] ?? 0;
+          return `<td>${v ? fmt(v) : '<span class="dim">–</span>'}</td>`;
+        }).join("");
+        body += `<tr class="park-row"><td>${p.name}</td>${pc}<td>${fmt(pt)}</td></tr>`;
+      }
+    }
+  }
+  tbl.querySelector("tbody").innerHTML = body || `<tr><td colspan="${WEEKS.length + 2}" class="skel">No data yet</td></tr>`;
+
+  const wTot = WEEKS.map(w => [...cities.values()].reduce((a, c) => a + (c.weeks[w]?.[m] ?? 0), 0));
+  const grand = wTot.reduce((a, b) => a + b, 0);
+  tbl.querySelector("tfoot").innerHTML =
+    `<tr><td>Total</td>${wTot.map(v => `<td>${v ? fmt(v) : '<span class="dim">–</span>'}</td>`).join("")}<td>${fmt(grand)}</td></tr>`;
+}
+document.getElementById("matrix").addEventListener("click", e => {
+  const tr = e.target.closest("tr.city-row");
+  if (!tr) return;
+  const name = decodeURIComponent(tr.dataset.city);
+  state.openCities.has(name) ? state.openCities.delete(name) : state.openCities.add(name);
+  renderAll();
+});
+document.getElementById("matrix").addEventListener("keydown", e => {
+  if ((e.key === "Enter" || e.key === " ") && e.target.classList.contains("city-row")) {
+    e.preventDefault(); e.target.click();
+  }
+});
+document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+  state.metric = b.dataset.metric;
+  document.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+  renderAll();
+}));
+
+/* ---------- line chart (small multiple) ---------- */
+function lineChart(boxId, labels, values, colorVar) {
+  const box = document.getElementById(boxId);
+  const tip = box.querySelector(".tip");
+  const W = 520, H = 200, padL = 44, padR = 16, padT = 14, padB = 26;
+  const maxV = Math.max(1, ...values);
+  const niceMax = Math.ceil(maxV / 4) * 4 * 1.08;
+  const x = i => padL + i * (W - padL - padR) / Math.max(1, labels.length - 1);
+  const y = v => padT + (H - padT - padB) * (1 - v / niceMax);
+  const pts = values.map((v, i) => [x(i), y(v)]);
+  const line = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+  const area = line + ` L ${x(values.length - 1).toFixed(1)} ${y(0)} L ${x(0).toFixed(1)} ${y(0)} Z`;
+  const ticks = [0, .25, .5, .75, 1].map(f => Math.round(niceMax * f));
+  const last = values.length - 1;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="line chart">`;
+  for (const t of ticks) {
+    svg += `<line class="grid-line" x1="${padL}" x2="${W - padR}" y1="${y(t)}" y2="${y(t)}"></line>` +
+           `<text class="axis-txt" x="${padL - 7}" y="${y(t) + 4}" text-anchor="end">${fmt(t)}</text>`;
+  }
+  labels.forEach((l, i) => {
+    svg += `<text class="axis-txt" x="${x(i)}" y="${H - 7}" text-anchor="middle">${l.replace("Week ", "W")}</text>`;
+  });
+  svg += `<path d="${area}" fill="var(${colorVar})" opacity="0.12"></path>`;
+  svg += `<path d="${line}" fill="none" stroke="var(${colorVar})" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>`;
+  svg += `<line class="crosshair" y1="${padT}" y2="${H - padB}"></line>`;
+  pts.forEach((p, i) => {
+    svg += `<circle cx="${p[0]}" cy="${p[1]}" r="${i === last ? 5 : 3.5}" fill="var(${colorVar})" stroke="var(--panel)" stroke-width="2"></circle>`;
+  });
+  svg += `<text x="${pts[last][0]}" y="${pts[last][1] - 10}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)" style="font-variant-numeric:tabular-nums">${fmt(values[last])}</text>`;
+  svg += `</svg>`;
+  box.querySelectorAll("svg").forEach(s => s.remove());
+  box.insertAdjacentHTML("beforeend", svg);
+
+  const svgEl = box.querySelector("svg");
+  const cross = svgEl.querySelector(".crosshair");
+  svgEl.addEventListener("mousemove", ev => {
+    const r = svgEl.getBoundingClientRect();
+    const mx = (ev.clientX - r.left) * W / r.width;
+    let best = 0, dist = 1e9;
+    pts.forEach((p, i) => { const d = Math.abs(p[0] - mx); if (d < dist) { dist = d; best = i; } });
+    cross.style.display = "block";
+    cross.setAttribute("x1", pts[best][0]); cross.setAttribute("x2", pts[best][0]);
+    tip.style.display = "block";
+    tip.style.left = (pts[best][0] * r.width / W) + "px";
+    tip.style.top = (pts[best][1] * r.height / H) + "px";
+    tip.innerHTML = `${labels[best]} · <b>${fmt(values[best])}</b>`;
+  });
+  svgEl.addEventListener("mouseleave", () => { tip.style.display = "none"; cross.style.display = "none"; });
+}
+
+/* ---------- horizontal bar chart ---------- */
+function barChart(boxId, entries) {
+  const box = document.getElementById(boxId);
+  const tip = box.querySelector(".tip");
+  const rowH = 30, padL = 130, padR = 64, padT = 6, padB = 6;
+  const W = 860, H = padT + padB + entries.length * rowH;
+  const maxV = Math.max(1, ...entries.map(e => e[1]));
+  const bw = v => (W - padL - padR) * v / maxV;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="bar chart">`;
+  entries.forEach(([name, v], i) => {
+    const by = padT + i * rowH + 5, bh = rowH - 12, w = Math.max(2, bw(v));
+    svg += `<text class="axis-txt" x="${padL - 10}" y="${by + bh / 2 + 4}" text-anchor="end" fill="var(--ink-2)">${name}</text>`;
+    svg += `<path class="bar" data-i="${i}" d="M ${padL} ${by} h ${w - 4} a 4 4 0 0 1 4 4 v ${bh - 8} a 4 4 0 0 1 -4 4 h ${-(w - 4)} Z" fill="var(--series-1)"></path>`;
+    svg += `<text x="${padL + w + 8}" y="${by + bh / 2 + 4}" font-size="12" font-weight="600" fill="var(--ink)" style="font-variant-numeric:tabular-nums">${fmt(v)}</text>`;
+  });
+  svg += `</svg>`;
+  box.querySelectorAll("svg").forEach(s => s.remove());
+  box.insertAdjacentHTML("beforeend", svg);
+  const svgEl = box.querySelector("svg");
+  svgEl.addEventListener("mousemove", ev => {
+    const bar = ev.target.closest(".bar");
+    if (!bar) { tip.style.display = "none"; return; }
+    const i = +bar.dataset.i, r = svgEl.getBoundingClientRect();
+    tip.style.display = "block";
+    tip.style.left = (ev.clientX - r.left) + "px";
+    tip.style.top = ((padT + i * rowH) * r.height / H) + "px";
+    tip.innerHTML = `${entries[i][0]} · <b>${fmt(entries[i][1])}</b> kids`;
+  });
+  svgEl.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+}
+
+/* ---------- feed ---------- */
+function renderFeed(recs) {
+  const latest = [...recs].sort((a, b) => b.ts - a.ts).slice(0, 6);
+  document.getElementById("feed").innerHTML = latest.map(r => {
+    const note = r.note && !/^(no|nil+|none|-|nothing)\.?$/i.test(r.note)
+      ? `<div class="f-note">${r.note.slice(0, 220)}${r.note.length > 220 ? "…" : ""}</div>` : "";
+    return `<div class="feed-item">
+      <span class="f-week">${fmtWeek(r.week)}</span>
+      <span class="f-city">${r.city}</span>
+      <span class="f-nums"><b>${fmt(r.kids)}</b> kids · ${fmt(r.team)} team</span>
+      <span class="f-park">${r.park}</span>
+      ${note}
+    </div>`;
+  }).join("") || `<div class="skel">No reports yet</div>`;
+}
+
+/* ---------- render + fetch loop ---------- */
+function renderAll() {
+  const recs = state.rows;
+  if (!recs.length) return;
+  WEEKS = weekList(recs);
+  TREND_WEEKS = WEEKS.filter(w => w !== "Orientation");
+  const cities = aggregate(recs);
+  renderKPIs(recs, cities);
+  renderMatrix(cities);
+  const wk = TREND_WEEKS.map(w => recs.filter(r => r.week === w).reduce((a, r) => a + r.kids, 0));
+  const wt = TREND_WEEKS.map(w => recs.filter(r => r.week === w).reduce((a, r) => a + r.team, 0));
+  const wkLabels = TREND_WEEKS.map(fmtWeek);
+  lineChart("chartKids", wkLabels, wk, "--series-1");
+  lineChart("chartTeam", wkLabels, wt, "--series-2");
+  barChart("chartCities", [...cities.entries()].map(([n, c]) => [n, c.kids]).sort((a, b) => b[1] - a[1]).slice(0, 12));
+  renderFeed(recs);
+}
+
+async function refresh() {
+  const dot = document.getElementById("liveDot"), txt = document.getElementById("liveTxt"),
+        banner = document.getElementById("banner"), stamp = document.getElementById("stamp");
+  try {
+    const res = await fetch(CSV_URL + "&_ts=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const recs = toRecords(parseCSV(await res.text()));
+    if (!recs.length) throw new Error("no rows parsed");
+    state.rows = recs;
+    renderAll();
+    dot.className = "live-dot ok"; txt.textContent = "Live";
+    banner.classList.remove("show");
+    stamp.textContent = "updated " + new Date().toLocaleTimeString();
+  } catch (err) {
+    dot.className = "live-dot err"; txt.textContent = "Offline";
+    banner.textContent = "Couldn't refresh from the sheet (" + err.message + "). Showing last loaded data — retrying automatically.";
+    banner.classList.add("show");
+  }
+}
+
+document.getElementById("refreshBtn").addEventListener("click", refresh);
+document.getElementById("themeBtn").addEventListener("click", () => {
+  const root = document.documentElement;
+  const cur = root.dataset.theme ||
+    (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  root.dataset.theme = cur === "dark" ? "light" : "dark";
+});
+addEventListener("resize", () => renderAll());
+
+refresh();
+setInterval(refresh, REFRESH_MS);
+</script>
+</body>
+</html>
