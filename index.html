@@ -371,8 +371,8 @@ function sundayOf(s) {
   if (!m) return 0;
   const d = new Date(+m[3], +m[2]-1, +m[1]);
   d.setDate(d.getDate() - d.getDay());
-  const t = d.getTime(), lo = WEEK1_START.getTime() - 14 * 86400000, hi = WEEK1_START.getTime() + 420 * 86400000;
-  return t >= lo && t <= hi ? t : 0;      // reject typo dates far outside the program
+  const t = d.getTime(), lo = WEEK1_START.getTime() - 14 * 86400000, hi = Date.now();
+  return t >= lo && t <= hi ? t : 0;      // reject typo dates: a class date before the program or in the future is a mis-entry
 }
 // fallback when a row has no readable class date: "Week N" label → Nth Sunday
 function labelToSunday(label) {
